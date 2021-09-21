@@ -18,7 +18,7 @@ export default function App() {
       document.body.style.backgroundColor = 'blue';
       true;
     `;
-    
+
   const onButtonClick = () => {
     const [lng, lat] = mapCenter.split(",");
     webRef.injectJavaScript(`map.setCenter([${parseFloat(lng)}, ${parseFloat(lat)}])`);
@@ -37,66 +37,37 @@ export default function App() {
     let baseUrl = `https://api.tomtom.com/search/2/search/${event}.json?`;
     let tomtomKey = process.env.TOMTOM_DEVELOPER_KEY;
     let searchUrl = baseUrl + `key=${tomtomKey}`;
-    
+
     axios.get(searchUrl)
-    .then(response => {
+      .then(response => {
 
-      let addresses = response.data.results.map(v => { 
-        let parts = v.address.freeformAddress.split(',');
-        return {
-          p1: parts.length > 0 ? parts[0] : null,
-          p2: parts.length > 1 ? parts[1] : null,
-          p3: parts.length > 2 ? parts[2] : null,
-          lat: v.position.lat,
-          lon: v.position.lon
-        };
-      });
+        let addresses = response.data.results.map(v => {
+          let parts = v.address.freeformAddress.split(',');
+          return {
+            p1: parts.length > 0 ? parts[0] : null,
+            p2: parts.length > 1 ? parts[1] : null,
+            p3: parts.length > 2 ? parts[2] : null,
+            lat: v.position.lat,
+            lon: v.position.lon
+          };
+        });
 
-      setSuggestionListData(addresses);
-      setShowList(true);
-    })
+        setSuggestionListData(addresses);
+        setShowList(true);
+      })
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.buttons}>
-        <TextInput 
-        style={styles.textInput}
-        onChangeText={setMapCenter}
-        value={mapCenter}></TextInput>
+        <TextInput
+          style={styles.textInput}
+          onChangeText={setMapCenter}
+          value={mapCenter}></TextInput>
         <Button title="Set Center" onPress={onButtonClick}></Button>
       </View>
 
-        <View style={styles.suggestionListContainer}>
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Query e.g. Washington"
-            onChangeText={handleSearchTextChange}>
-          </TextInput>
-          {showList &&
-          <FlatList
-            style={styles.searchList}
-            keyExtractor={(item, index) => index.toString()}
-            keyboardShouldPersistTaps="always"
-            initialNumToRender={5}
-            data={suggestionListData}
-            renderItem={({item}) => (
-              <TouchableOpacity onPress={ () => onPressItem(item)}>
-                <View style={styles.searchListItem}>
-                  <View style={styles.searchListItemIcon}>
-                    <FontAwesomeIcon icon={ faMapMarkerAlt } />
-                  </View>
-                  <View>
-                    <Text style={styles.searchListItemTitle}>{item.p1}</Text>
-                    {(item.p2 && item.p3) ? (<Text>{item.p2} {item.p3}</Text>) : null}
-                    {(item.p2 && !item.p3) ? (<Text>{item.p2}</Text>) : null}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-            />
-          }
-        </View>
+      <Suggestions showList={showList} suggestionListData={suggestionListData} onPressItem={onPressItem} handleSearchTextChange={handleSearchTextChange}></Suggestions>
 
       <WebView
         ref={(r) => (webRef = r)}
@@ -107,6 +78,31 @@ export default function App() {
       />
     </View>
   );
+}
+
+function Suggestions(props) {
+  return (<View style={styles.suggestionListContainer}>
+    <TextInput style={styles.searchInput} placeholder="Query e.g. Washington" onChangeText={props.handleSearchTextChange}>
+    </TextInput>
+    {props.showList && <FlatList style={styles.searchList} keyExtractor={(item, index) => index.toString()} keyboardShouldPersistTaps="always" initialNumToRender={5} data={props.suggestionListData} renderItem={({
+      item
+    }) => <SuggestionListItem onPressItem={props.onPressItem} item={item}></SuggestionListItem>} />}
+  </View>);
+}
+
+function SuggestionListItem(props) {
+  return (<TouchableOpacity onPress={() => props.onPressItem(props.item)}>
+    <View style={styles.searchListItem}>
+      <View style={styles.searchListItemIcon}>
+        <FontAwesomeIcon icon={faMapMarkerAlt} />
+      </View>
+      <View>
+        <Text style={styles.searchListItemTitle}>{props.item.p1}</Text>
+        {props.item.p2 && props.item.p3 ? <Text>{props.item.p2} {props.item.p3}</Text> : null}
+        {props.item.p2 && !props.item.p3 ? <Text>{props.item.p2}</Text> : null}
+      </View>
+    </View>
+  </TouchableOpacity>);
 }
 
 const styles = StyleSheet.create({
@@ -135,7 +131,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '85%',
     alignItems: 'center',
-    justifyContent: 'center'    
+    justifyContent: 'center'
   },
   searchButtons: {
     flexDirection: 'row',
@@ -148,7 +144,7 @@ const styles = StyleSheet.create({
     paddingLeft: 18,
     paddingRight: 18
   },
-  searchInput:  {
+  searchInput: {
     height: 40,
     paddingLeft: 10,
     paddingRight: 10,
@@ -170,7 +166,7 @@ const styles = StyleSheet.create({
   searchListItem: {
     marginTop: 5,
     marginBottom: 5,
-    flexDirection:"row"
+    flexDirection: "row"
   },
   searchListItemTitle: {
     fontWeight: 'bold'
