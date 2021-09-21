@@ -1,15 +1,15 @@
 import React from 'react';
 import { useState } from 'react';
-import { StyleSheet, View, Button, Text, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Button, TextInput } from 'react-native';
 import { WebView } from 'react-native-webview';
 import mapTemplate from './map-template';
 import axios from 'axios';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
+import { Suggestions } from './Suggestions';
 
 export default function App() {
   let webRef = undefined;
   let searchWaiting = undefined;
+  let [placeholder, setPlaceholder] = useState('Query e.g. Washington');
   let [mapCenter, setMapCenter] = useState('-121.913, 37.361');
   let [showList, setShowList] = useState(false);
   let [suggestionListData, setSuggestionListData] = useState([])
@@ -25,6 +25,8 @@ export default function App() {
   }
 
   const onPressItem = (item) => {
+    setPlaceholder(item.address);
+    setMapCenter(`${item.lat}, ${item.lon}`)
     setShowList(false);
     webRef.injectJavaScript(`map.setCenter([${parseFloat(item.lon)}, ${parseFloat(item.lat)}])`);
   }
@@ -33,20 +35,27 @@ export default function App() {
     setMapCenter(event.nativeEvent.data)
   }
 
-  const handleSearchTextChange = event => {
-    let baseUrl = `https://api.tomtom.com/search/2/search/${event}.json?`;
+  const handleSearchTextChange = changedSearchText => {
+    if (!changedSearchText || changedSearchText.length < 5) 
+      return;
+
+    let baseUrl = `https://api.tomtom.com/search/2/search/${changedSearchText}.json?`;
     let tomtomKey = process.env.TOMTOM_DEVELOPER_KEY;
     let searchUrl = baseUrl + `key=${tomtomKey}`;
 
     axios.get(searchUrl)
       .then(response => {
 
+        // alert(JSON.stringify(response.data.results))
+
         let addresses = response.data.results.map(v => {
+
           let parts = v.address.freeformAddress.split(',');
           return {
             p1: parts.length > 0 ? parts[0] : null,
             p2: parts.length > 1 ? parts[1] : null,
             p3: parts.length > 2 ? parts[2] : null,
+            address: v.address.freeformAddress,
             lat: v.position.lat,
             lon: v.position.lon
           };
@@ -67,7 +76,13 @@ export default function App() {
         <Button title="Set Center" onPress={onButtonClick}></Button>
       </View>
 
-      <Suggestions showList={showList} suggestionListData={suggestionListData} onPressItem={onPressItem} handleSearchTextChange={handleSearchTextChange}></Suggestions>
+      <Suggestions 
+        placeholder={placeholder}
+        showList={showList} 
+        suggestionListData={suggestionListData} 
+        onPressItem={onPressItem} 
+        handleSearchTextChange={handleSearchTextChange}>
+      </Suggestions>
 
       <WebView
         ref={(r) => (webRef = r)}
@@ -78,31 +93,6 @@ export default function App() {
       />
     </View>
   );
-}
-
-function Suggestions(props) {
-  return (<View style={styles.suggestionListContainer}>
-    <TextInput style={styles.searchInput} placeholder="Query e.g. Washington" onChangeText={props.handleSearchTextChange}>
-    </TextInput>
-    {props.showList && <FlatList style={styles.searchList} keyExtractor={(item, index) => index.toString()} keyboardShouldPersistTaps="always" initialNumToRender={5} data={props.suggestionListData} renderItem={({
-      item
-    }) => <SuggestionListItem onPressItem={props.onPressItem} item={item}></SuggestionListItem>} />}
-  </View>);
-}
-
-function SuggestionListItem(props) {
-  return (<TouchableOpacity onPress={() => props.onPressItem(props.item)}>
-    <View style={styles.searchListItem}>
-      <View style={styles.searchListItemIcon}>
-        <FontAwesomeIcon icon={faMapMarkerAlt} />
-      </View>
-      <View>
-        <Text style={styles.searchListItemTitle}>{props.item.p1}</Text>
-        {props.item.p2 && props.item.p3 ? <Text>{props.item.p2} {props.item.p3}</Text> : null}
-        {props.item.p2 && !props.item.p3 ? <Text>{props.item.p2}</Text> : null}
-      </View>
-    </View>
-  </TouchableOpacity>);
 }
 
 const styles = StyleSheet.create({
@@ -128,47 +118,10 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   map: {
+    transform: [{ scale: 3 }],
     width: '100%',
     height: '85%',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  searchButtons: {
-    flexDirection: 'row',
-    height: '10%',
-    backgroundColor: '#fff',
-    color: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 0,
-    paddingLeft: 18,
-    paddingRight: 18
-  },
-  searchInput: {
-    height: 40,
-    paddingLeft: 10,
-    paddingRight: 10,
-    borderWidth: 1
-  },
-  suggestionListContainer: {
-    width: "90%",
-    marginLeft: "5%",
-  },
-  searchList: {
-    width: "95%",
-    marginTop: 10,
-  },
-  searchListItemIcon: {
-    marginLeft: 10,
-    marginRight: 10,
-    marginTop: 10
-  },
-  searchListItem: {
-    marginTop: 5,
-    marginBottom: 5,
-    flexDirection: "row"
-  },
-  searchListItemTitle: {
-    fontWeight: 'bold'
   }
 });

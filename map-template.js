@@ -24,7 +24,7 @@ export default `
             key: '${process.env.TOMTOM_DEVELOPER_KEY}',
             container: 'map',
             center: [-121.913, 37.361],
-            zoom: 20
+            zoom: 10
         });
         map.on('dragend', function() {
             let center = map.getCenter();
