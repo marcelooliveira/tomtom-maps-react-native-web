@@ -1,4 +1,3 @@
-
 export default `
 <div>
     <style>
@@ -22,10 +21,10 @@ export default `
         // create the map
         tt.setProductInfo('TomTom Maps React Native Demo', '1.0');
         let map = tt.map({
-            key: 'YOUR API KEY GOES HERE',
+            key: '${process.env.TOMTOM_DEVELOPER_KEY}',
             container: 'map',
             center: [-121.913, 37.361],
-            zoom: 15
+            zoom: 20
         });
         map.on('dragend', function() {
             let center = map.getCenter();
