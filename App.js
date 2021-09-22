@@ -8,7 +8,6 @@ import { Suggestions } from './Suggestions';
 
 export default function App() {
   let webRef = undefined;
-  let searchWaiting = undefined;
   let [placeholder, setPlaceholder] = useState('Query e.g. Washington');
   let [mapCenter, setMapCenter] = useState('-121.913, 37.361');
   let [showList, setShowList] = useState(false);
@@ -28,7 +27,8 @@ export default function App() {
     setPlaceholder(item.address);
     setMapCenter(`${item.lat}, ${item.lon}`)
     setShowList(false);
-    webRef.injectJavaScript(`map.setCenter([${parseFloat(item.lon)}, ${parseFloat(item.lat)}])`);
+    webRef.injectJavaScript(`map.setCenter([${parseFloat(item.lon)}, 
+      ${parseFloat(item.lat)}])`);
   }
 
   const handleMapEvent = (event) => {
@@ -45,8 +45,6 @@ export default function App() {
 
     axios.get(searchUrl)
       .then(response => {
-
-        // alert(JSON.stringify(response.data.results))
 
         let addresses = response.data.results.map(v => {
 
