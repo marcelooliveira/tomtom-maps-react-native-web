@@ -1,28 +1,43 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, Button, TextInput } from 'react-native';
 import { WebView } from 'react-native-webview';
 import mapTemplate from './map-template';
 import axios from 'axios';
 import { Suggestions } from './Suggestions';
+import * as Location from 'expo-location';
 
 export default function App() {
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted')
+        return;
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
+
   let webRef = undefined;
-  let [placeholder, setPlaceholder] = useState('Query e.g. Washington');
   let [mapCenter, setMapCenter] = useState('-121.913, 37.361');
+  const tomtomKey = process.env.TOMTOM_DEVELOPER_KEY;
+  let [placeholder, setPlaceholder] = useState('Query e.g. Washington');
   let [showList, setShowList] = useState(false);
   let [suggestionListData, setSuggestionListData] = useState([])
 
   const run = `
-      document.body.style.backgroundColor = 'blue';
-      true;
-    `;
-
+  document.body.style.backgroundColor = 'blue';
+  true;
+  `;
+  
   const onButtonClick = () => {
     const [lng, lat] = mapCenter.split(",");
     webRef.injectJavaScript(`map.setCenter([${parseFloat(lng)}, ${parseFloat(lat)}])`);
   }
-
+  
   const onPressItem = (item) => {
     setPlaceholder(item.address);
     setMapCenter(`${item.lat}, ${item.lon}`)
@@ -40,28 +55,45 @@ export default function App() {
       return;
 
     let baseUrl = `https://api.tomtom.com/search/2/search/${changedSearchText}.json?`;
-    let tomtomKey = process.env.TOMTOM_DEVELOPER_KEY;
     let searchUrl = baseUrl + `key=${tomtomKey}`;
 
-    axios.get(searchUrl)
-      .then(response => {
+    if (location) {
+      searchUrl = searchUrl + `&lon=${location.coords.longitude}`;
+      searchUrl = searchUrl + `&lat=${location.coords.latitude}`;
+    }
 
-        let addresses = response.data.results.map(v => {
-
-          let parts = v.address.freeformAddress.split(',');
-          return {
-            p1: parts.length > 0 ? parts[0] : null,
-            p2: parts.length > 1 ? parts[1] : null,
-            p3: parts.length > 2 ? parts[2] : null,
-            address: v.address.freeformAddress,
-            lat: v.position.lat,
-            lon: v.position.lon
-          };
-        });
-
-        setSuggestionListData(addresses);
-        setShowList(true);
+    axios
+      .get(searchUrl)  
+      .then(response => {     
+        let addresses = response.data.results.map(v => {     
+          let parts = v.address.freeformAddress.split(',');  
+          return {  
+            p1: parts.length > 0 ? parts[0] : null,  
+            p2: parts.length > 1 ? parts[1] : null,  
+            p3: parts.length > 2 ? parts[2] : null,  
+            address: v.address.freeformAddress,  
+            lat: v.position.lat,  
+            lon: v.position.lon  
+          };  
+        });  
+   
+        setSuggestionListData(addresses);  
+        setShowList(true);  
       })
+      .catch(function (error) {
+        if (error.response) {
+          // Request made and server responded
+          console.log(error.response.data);
+          console.log(error.response.status);
+          console.log(error.response.headers);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.log(error.request);
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.log('Error', error.message);
+        }
+      })   
   }
 
   return (
